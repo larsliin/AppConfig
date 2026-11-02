@@ -1,5 +1,10 @@
 <script setup lang="ts">
-    import { ref, onMounted, computed, watch } from 'vue';
+    import { ref, onMounted, computed, watch, nextTick } from 'vue';
+    import { EditorView } from 'codemirror';
+    import { EditorState } from '@codemirror/state';
+    import { json } from '@codemirror/lang-json';
+    import { lineNumbers } from '@codemirror/view';
+    import { oneDark } from '@codemirror/theme-one-dark';
     import BaseCheckbox from './components/bascomponents/BaseCheckbox.vue';
     import BaseButton from './components/bascomponents/BaseButton.vue';
     import BaseFeedbackBadge from './components/bascomponents/BaseFeedbackBadge.vue';
@@ -12,6 +17,9 @@
     const showErrorFeedback = ref(false);
     const error = ref('');
     const loading = ref(false);
+    const editorContainer = ref<HTMLDivElement>();
+    const isDarkMode = ref(true);
+    let editorView: EditorView | null = null;
     let feedbackTimeout: number | null = null;
 
     const { injectLocalhost, injectLocalhostDisabled, LOCALHOST_OBJECT, isCheckboxDisabled, setLocalhostObject } = useLocalhostInjection();
@@ -71,11 +79,11 @@
                         }
                     }
 
-                    // Set appConfig after determining localhost injection state
-                    appConfig.value = displayedConfig.value;
+                    // Update editor after determining localhost injection state
+                    updateEditorContent(displayedConfig.value);
                 } else {
                     error.value = response?.error || 'Failed to load config';
-                    appConfig.value = '';
+                    updateEditorContent('');
                     injectLocalhost.value = wasInjectLocalhostEnabled;
                 }
             },
@@ -84,7 +92,8 @@
 
     async function handleCopyToClipboard() {
         try {
-            await navigator.clipboard.writeText(appConfig.value);
+            const textToCopy = editorView?.state.doc.toString() || appConfig.value;
+            await navigator.clipboard.writeText(textToCopy);
 
             // Clear any existing timeout
             if (feedbackTimeout) {
@@ -119,12 +128,72 @@
     // Watch for localhost injection toggle changes
     watch(injectLocalhost, () => {
         if (configData.value) {
-            appConfig.value = displayedConfig.value;
+            updateEditorContent(displayedConfig.value);
         }
     });
 
-    // Initialize dark mode based on OS preference
+    // Watch for theme changes and update editor
+    watch(isDarkMode, () => {
+        if (editorView && appConfig.value) {
+            updateEditorContent(appConfig.value);
+        }
+    });
+
+    function getEditorExtensions() {
+        return [
+            json(),
+            lineNumbers(),
+            isDarkMode.value ? oneDark : [],
+        ];
+    }
+
+    function updateThemeDetection() {
+        const root = document.documentElement;
+        const hasLightThemeAttr = root.hasAttribute('data-theme');
+        isDarkMode.value = !hasLightThemeAttr;
+    }
+
+    function initializeEditor() {
+        if (!editorContainer.value || editorView) return;
+
+        const state = EditorState.create({
+            doc: appConfig.value,
+            extensions: getEditorExtensions(),
+        });
+
+        editorView = new EditorView({
+            state,
+            parent: editorContainer.value,
+        });
+    }
+
+    function updateEditorContent(newContent: string) {
+        appConfig.value = newContent;
+        if (editorView) {
+            editorView.setState(
+                EditorState.create({
+                    doc: newContent,
+                    extensions: getEditorExtensions(),
+                }),
+            );
+        }
+    }
+
+    // Initialize dark mode based on extension theme setting
     onMounted(() => {
+        // Detect initial theme
+        updateThemeDetection();
+
+        // Watch for theme changes
+        const observer = new MutationObserver(() => {
+            updateThemeDetection();
+        });
+
+        observer.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ['data-theme'],
+        });
+
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs: any) => {
             if (tabs.length > 0) {
                 const tabUrl = tabs[0].url;
@@ -135,6 +204,13 @@
         });
 
         handleRefresh();
+        nextTick(() => {
+            initializeEditor();
+        });
+
+        return () => {
+            observer.disconnect();
+        };
     });
 </script>
 
@@ -163,11 +239,7 @@
                 {{ error }}
             </div>
 
-            <textarea
-                v-model="appConfig"
-                class="config-textarea"
-                :placeholder="loading ? 'Loading config...' : 'No config loaded'"
-            ></textarea>
+            <div ref="editorContainer" class="code-editor-container"></div>
 
             <div class="config-controls">
                 <div class="checkbox-row">
@@ -233,23 +305,45 @@
     word-break: break-word;
 }
 
-.config-textarea {
+.code-editor-container {
     flex: 1;
-    padding: 8px;
-    background: var(--color-panel);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-button);
-    color: var(--color-text);
+    background: var(--color-panel);
+    overflow: hidden;
+}
+
+.code-editor-container :deep(.cm-editor) {
     font-family: ui-monospace, Menlo, Consolas, monospace;
     font-size: 12px;
     line-height: 1.4;
-    resize: none;
-    overflow-y: auto;
+    height: 100%;
 }
 
-.config-textarea:focus {
-    outline: none;
-    border-color: var(--color-accent);
+.code-editor-container :deep(.cm-content) {
+    padding: 8px;
+    color: var(--color-text);
+}
+
+.code-editor-container :deep(.cm-line) {
+    white-space: pre !important;
+}
+
+.code-editor-container :deep(.cm-scroller) {
+    overflow: auto;
+}
+
+.code-editor-container :deep(.cm-gutters) {
+    background-color: transparent;
+    border-right: 1px solid var(--color-border);
+    padding-right: 4px;
+}
+
+.code-editor-container :deep(.cm-linenumber) {
+    color: var(--color-text-secondary, #999);
+    text-align: right;
+    padding-right: 8px;
+    min-width: 2.5em;
 }
 
 .config-controls {
