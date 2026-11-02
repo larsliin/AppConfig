@@ -3,6 +3,7 @@
 
     const props = defineProps<{
         disabled?: boolean;
+        id?: string;
     }>();
 
     function updateChecked(event: Event) {
@@ -13,6 +14,7 @@
 <template>
     <input
         type="checkbox"
+        :id="props.id"
         :checked="model"
         :disabled="props.disabled"
         @change="updateChecked"

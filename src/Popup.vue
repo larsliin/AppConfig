@@ -7,14 +7,59 @@
     const configData = ref<any>(null);
     const injectLocalhost = ref(false);
     const injectLocalhostDisabled = ref(false);
-    const copied = ref(false);
+    const showCopyFeedback = ref(false);
     const error = ref('');
     const loading = ref(false);
+    const LOCALHOST_OBJECT = ref<any>(null);
+    let feedbackTimeout: number | null = null;
 
-    const LOCALHOST_OBJECT = {
-        tenantHost: 'dev7.wppes-map-dev.com',
-        applicationHost: 'dev7.brief.wppes-map-dev.com',
-    };
+    /**
+     * Extract domain from URL
+     * Removes protocol and www. but keeps domain extension
+     * Example: "https://www.mydomain.com" -> "mydomain.com"
+     */
+    function extractDomain(url: string): string {
+        try {
+            const urlObj = new URL(url);
+            let domain = urlObj.hostname;
+            // Remove www. if present
+            if (domain.startsWith('www.')) {
+                domain = domain.substring(4);
+            }
+            return domain;
+        } catch {
+            return '';
+        }
+    }
+
+    /**
+     * Extract tenantHost by removing string between first and second dot
+     * Example: "dev7.brief.wppes-map-dev.com" -> "dev7.wppes-map-dev.com"
+     */
+    function extractTenantHost(domain: string): string {
+        const parts = domain.split('.');
+        if (parts.length <= 2) {
+            return domain;
+        }
+        // Remove the second part (index 1)
+        parts.splice(1, 1);
+        return parts.join('.');
+    }
+
+    /**
+     * Build localhost object from current tab URL
+     */
+    function buildLocalhostObject(tabUrl: string): any {
+        const domain = extractDomain(tabUrl);
+        if (!domain) {
+            return null;
+        }
+
+        return {
+            tenantHost: extractTenantHost(domain),
+            applicationHost: domain,
+        };
+    }
 
     // Compute the displayed config based on injection toggle
     const displayedConfig = computed(() => {
@@ -22,7 +67,7 @@
 
         if (injectLocalhost.value && !configData.value.localhost) {
             const configWithLocalhost = {
-                localhost: LOCALHOST_OBJECT,
+                localhost: LOCALHOST_OBJECT.value,
                 ...configData.value,
             };
             return JSON.stringify(configWithLocalhost, null, 2);
@@ -63,13 +108,28 @@
         );
     }
 
+    function handleTextareaInput(event: Event) {
+        if (event.target instanceof HTMLTextAreaElement) {
+            appConfig.value = event.target.value;
+        }
+    }
+
     async function handleCopyToClipboard() {
         try {
             await navigator.clipboard.writeText(displayedConfig.value);
-            copied.value = true;
-            setTimeout(() => {
-                copied.value = false;
-            }, 2000);
+            
+            // Clear any existing timeout
+            if (feedbackTimeout) {
+                clearTimeout(feedbackTimeout);
+            }
+            
+            showCopyFeedback.value = true;
+            
+            // Start fade-out immediately
+            feedbackTimeout = setTimeout(() => {
+                showCopyFeedback.value = false;
+                feedbackTimeout = null;
+            }, 50);
         } catch (err) {
             console.error('Failed to copy:', err);
             error.value = 'Failed to copy to clipboard';
@@ -84,6 +144,17 @@
             document.documentElement.removeAttribute('data-theme');
         }
 
+        // Get current tab URL and build localhost object
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs: any) => {
+            if (tabs.length > 0) {
+                const tabUrl = tabs[0].url;
+                if (tabUrl) {
+                    LOCALHOST_OBJECT.value = buildLocalhostObject(tabUrl);
+                    console.log('[Popup] Built LOCALHOST_OBJECT from URL:', LOCALHOST_OBJECT.value);
+                }
+            }
+        });
+
         // Load config on mount
         handleRefresh();
     });
@@ -92,8 +163,13 @@
 <template>
     <div id="app">
         <div class="config-container">
+                <div v-if="showCopyFeedback || showCopyFeedback === false" class="copy-feedback-badge" :class="{ 'fade-out': !showCopyFeedback }">
+                    <svg width="90" height="90" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"/>
+                    </svg>
+                </div>
             <div class="config-header">
-                <h1>AppConfig</h1>
+                <h1>AppConfig Copier</h1>
                 <BaseButton
                     variant="tool"
                     @click="handleRefresh"
@@ -115,25 +191,27 @@
             <textarea
                 :value="displayedConfig"
                 class="config-textarea"
-                readonly
+                @input="handleTextareaInput"
                 :placeholder="loading ? 'Loading config...' : 'No config loaded'"
             ></textarea>
 
             <div class="config-controls">
-                <div class="control-item">
-                    <label :class="{ disabled: injectLocalhostDisabled }">Inject Localhost</label>
+                <div class="checkbox-row">
                     <BaseCheckbox
+                        id="inject-localhost-checkbox"
                         v-model="injectLocalhost"
                         :disabled="injectLocalhostDisabled"
                     />
+                    <label for="inject-localhost-checkbox" :class="{ disabled: injectLocalhostDisabled }">Inject Localhost</label>
                 </div>
 
                 <BaseButton
                     variant="primary"
+                    class="copy-button"
                     @click="handleCopyToClipboard"
                     :disabled="!displayedConfig"
                 >
-                    {{ copied ? 'Copied!' : 'Copy to Clipboard' }}
+                    Copy to Clipboard
                 </BaseButton>
             </div>
         </div>
@@ -202,31 +280,54 @@
 
 .config-controls {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
+    flex-direction: column;
     gap: 8px;
 }
 
-.control-item {
+.checkbox-row {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 0;
-    background: transparent;
-    border: none;
-    border-radius: 0;
-    flex-shrink: 0;
+    width: 100%;
 }
 
-.control-item label {
+.checkbox-row label {
     font-size: 13px;
     color: var(--color-text);
     font-weight: 500;
     white-space: nowrap;
 }
 
-.control-item label.disabled {
+.checkbox-row label.disabled {
     opacity: 0.6;
     cursor: not-allowed;
+}
+
+.copy-button {
+    align-self: flex-end;
+}
+
+.copy-feedback-badge {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: #10b981;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+    z-index: 1000;
+    opacity: 1;
+    pointer-events: none;
+}
+
+.copy-feedback-badge.fade-out {
+    opacity: 0;
+    transition: opacity 1.5s ease-out;
 }
 </style>
