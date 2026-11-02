@@ -56,7 +56,7 @@ async function handleGetConfig(tabId, sendResponse) {
             } catch {
                 sendResponse({
                     success: false,
-                    error: 'Unable to reach content script on this tab. The page may not be fully loaded or may not have appConfig.json available. Try reloading the page.',
+                    error: 'Unable to read appConfig.json on this page. The page may not be fully loaded, or the configuration file may not be available. Try reloading the page.',
                 });
                 return;
             }

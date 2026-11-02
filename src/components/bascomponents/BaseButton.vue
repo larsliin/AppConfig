@@ -103,6 +103,11 @@
     border-color: #15a86d;
 }
 
+.primary-button:active:not(:disabled) {
+    background: #0f7d54;
+    border-color: #0f7d54;
+}
+
 .primary-button:disabled {
     opacity: 0.6;
     cursor: not-allowed;

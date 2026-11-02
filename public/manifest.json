@@ -14,7 +14,7 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Copy Config"
+    "default_title": "Catalyst appConfig copier"
   },
   "background": {
     "service_worker": "background.js"

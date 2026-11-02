@@ -28,6 +28,14 @@
         return loading.value || !!error.value;
     });
 
+    const isEditorDisabled = computed(() => {
+        return !!error.value;
+    });
+
+    const isCheckboxLocalhostDisabled = computed(() => {
+        return isCheckboxDisabled.value || isEditorDisabled.value;
+    });
+
     useTheme();
 
     // Compute the displayed config based on injection toggle
@@ -133,6 +141,13 @@
     });
 
     // Watch for theme changes and update editor
+    // Watch for error state changes and update editor
+    watch(error, () => {
+        if (editorView && appConfig.value) {
+            updateEditorContent(appConfig.value);
+        }
+    });
+
     watch(isDarkMode, () => {
         if (editorView && appConfig.value) {
             updateEditorContent(appConfig.value);
@@ -140,11 +155,13 @@
     });
 
     function getEditorExtensions() {
-        return [
+        const extensions = [
             json(),
             lineNumbers(),
             isDarkMode.value ? oneDark : [],
+            EditorView.editable.of(!isEditorDisabled.value),
         ];
+        return extensions;
     }
 
     function updateThemeDetection() {
@@ -220,7 +237,7 @@
             <BaseFeedbackBadge variant="success" :show="showCopyFeedback" />
             <BaseFeedbackBadge variant="error" :show="showErrorFeedback" />
             <div class="config-header">
-                <h1>AppConfig Copier</h1>
+                <h1>Catalyst AppConfig Copier</h1>
                 <BaseButton
                     variant="tool"
                     @click="handleRefresh"
@@ -246,7 +263,7 @@
                     <BaseCheckbox
                         id="inject-localhost-checkbox"
                         v-model="injectLocalhost"
-                        :disabled="isCheckboxDisabled"
+                        :disabled="isCheckboxLocalhostDisabled"
                     />
                     <label for="inject-localhost-checkbox" :class="{ disabled: isCheckboxDisabled }">Inject Localhost</label>
                 </div>
@@ -334,7 +351,7 @@
 }
 
 .code-editor-container :deep(.cm-gutters) {
-    background-color: transparent;
+    background-color: var(--color-panel);
     border-right: 1px solid var(--color-border);
     padding-right: 4px;
 }
