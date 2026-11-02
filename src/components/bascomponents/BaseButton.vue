@@ -15,7 +15,15 @@
 </script>
 
 <template>
-    <button ref="button" :type="type" :class="{ 'tool-button': variant === 'tool', 'secondary-button': variant === 'secondary', 'primary-button': variant === 'primary' }">
+    <button
+        ref="button"
+        :type="type"
+        :class="{
+            'tool-button': variant === 'tool',
+            'secondary-button': variant === 'secondary',
+            'primary-button': variant === 'primary',
+        }"
+    >
         <slot />
     </button>
 </template>

@@ -21,7 +21,7 @@ function initTheme() {
     if (window.matchMedia) {
         const darkPreference = window.matchMedia('(prefers-color-scheme: dark)');
         applyTheme(darkPreference.matches);
-        
+
         // Listen for OS theme changes
         mediaQueryList = darkPreference;
         mediaQueryList.addEventListener('change', (e) => {
