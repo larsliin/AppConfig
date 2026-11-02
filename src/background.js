@@ -1,101 +1,75 @@
 // Background Service Worker for Config Copier Extension
 
-let currentTabId = null;
+const USER_FRIENDLY_ERRORS = {
+    'Could not establish connection. Receiving end does not exist.': 
+        'Failed to read appConfig.json. Try reloading the page.',
+    'The tab was closed.':
+        'The page was closed. Please try again.',
+    'Tabs cannot be accessed in this context.':
+        'Failed to read appConfig.json. Try reloading the page.',
+};
 
-// Listen for messages from popup or content scripts
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'getConfig') {
-        currentTabId = sender.tab?.id;
-
-        if (!currentTabId) {
-            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                if (tabs.length > 0) {
-                    currentTabId = tabs[0].id;
-                    handleGetConfig(currentTabId, sendResponse);
-                } else {
-                    sendResponse({
-                        success: false,
-                        error: 'No active tab found. Make sure the popup is open from a browser tab.',
-                    });
-                }
-            });
-        } else {
-            handleGetConfig(currentTabId, sendResponse);
-        }
-    } else if (request.action === 'clearConfig') {
-        handleClearConfig(sendResponse);
+        handleGetConfig(sendResponse);
     }
-
     return true;
 });
 
-/**
- * Get configuration from various sources
- */
-async function handleGetConfig(tabId, sendResponse) {
-    try {
-        if (tabId) {
-            try {
-                const response = await chrome.tabs.sendMessage(tabId, {
-                    action: 'getAppConfig',
-                });
+function getUserFriendlyError(techError) {
+    // Check for known Chrome errors and map to friendly messages
+    for (const [techMsg, friendlyMsg] of Object.entries(USER_FRIENDLY_ERRORS)) {
+        if (techError?.includes(techMsg)) {
+            return friendlyMsg;
+        }
+    }
+    // Default to standard message
+    return 'Failed to read appConfig.json. Try reloading the page.';
+}
 
-                if (response && response.success && response.data) {
-                    sendResponse({
-                        success: true,
-                        data: response.data,
-                    });
-                    return;
-                } else {
-                    sendResponse({
-                        success: false,
-                        error: response?.error || 'appConfig.json not found. Make sure the file exists and is downloadable from this page.',
-                    });
-                    return;
-                }
-            } catch {
-                sendResponse({
-                    success: false,
-                    error: 'Unable to read appConfig.json on this page. The page may not be fully loaded, or the configuration file may not be available. Try reloading the page.',
-                });
-                return;
-            }
-        } else {
+async function handleGetConfig(sendResponse) {
+    try {
+        // Query for the active tab since message comes from popup, not content script
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+
+        if (!tabs || tabs.length === 0 || !tabs[0]?.id) {
             sendResponse({
                 success: false,
-                error: 'Unable to determine current tab.',
+                error: 'Please make sure a webpage is open in this window.',
             });
             return;
+        }
+
+        const tabId = tabs[0].id;
+
+        try {
+            const response = await chrome.tabs.sendMessage(tabId, {
+                action: 'getAppConfig',
+            });
+
+            if (response?.success && response.data) {
+                sendResponse({
+                    success: true,
+                    data: response.data,
+                });
+            } else {
+                sendResponse({
+                    success: false,
+                    error: response?.error || 'Failed to read appConfig.json. Try reloading the page.',
+                });
+            }
+        } catch (error) {
+            const friendlyError = getUserFriendlyError(error.message);
+            sendResponse({
+                success: false,
+                error: friendlyError,
+            });
         }
     } catch (error) {
         sendResponse({
             success: false,
-            error: error.message,
+            error: 'Could not access the page. Try reloading the page.',
         });
     }
 }
-
-/**
- * Clear stored configuration
- */
-function handleClearConfig(sendResponse) {
-    try {
-        chrome.storage.local.remove('config', () => {
-            sendResponse({
-                success: true,
-                message: 'Configuration cleared',
-            });
-        });
-    } catch (error) {
-        sendResponse({
-            success: false,
-            error: error.message,
-        });
-    }
-}
-
-// Initialize on extension load
-chrome.runtime.onInstalled.addListener(() => {
-    // Extension installed/updated
-});
 

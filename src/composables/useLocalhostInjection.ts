@@ -10,8 +10,23 @@ export function useLocalhostInjection() {
         return injectLocalhostDisabled.value;
     });
 
-    function setLocalhostObject(tabUrl: string): void {
-        LOCALHOST_OBJECT.value = buildLocalhostObject(tabUrl);
+    function setLocalhostObject(tabUrl: string): { success: boolean; error?: string } {
+        try {
+            const localhostObj = buildLocalhostObject(tabUrl);
+            if (!localhostObj) {
+                return {
+                    success: false,
+                    error: 'Could not extract domain information from this page.',
+                };
+            }
+            LOCALHOST_OBJECT.value = localhostObj;
+            return { success: true };
+        } catch (err) {
+            return {
+                success: false,
+                error: 'Could not set up localhost configuration for this page.',
+            };
+        }
     }
 
     return {

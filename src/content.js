@@ -1,38 +1,26 @@
 // Content script for Config Copier Extension
 // Runs in the context of web pages
 
-let foundConfig = null;
-
-// Listen for messages from the background script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'getAppConfig') {
         findAppConfigFile().then((config) => {
-            const response = {
+            sendResponse({
                 success: !!config,
                 data: config,
-                error: config ? null : 'appConfig.json not found on this page',
-            };
-            sendResponse(response);
+                error: config ? null : 'Failed to read appConfig.json. Try reloading the page.',
+            });
         }).catch((error) => {
             sendResponse({
                 success: false,
-                error: error.message,
+                error: 'Failed to read appConfig.json. Try reloading the page.',
             });
         });
         return true;
     }
 });
 
-/**
- * Search for appConfig.json file on the page
- */
 async function findAppConfigFile() {
-    const filesToTry = [
-        '/appConfig.json',
-        './appConfig.json',
-        '../appConfig.json',
-        'appConfig.json',
-    ];
+    const filesToTry = ['/appConfig.json', './appConfig.json', '../appConfig.json', 'appConfig.json'];
 
     for (const url of filesToTry) {
         try {
@@ -41,36 +29,20 @@ async function findAppConfigFile() {
                 credentials: 'same-origin',
             });
 
-            if (response.ok) {
-                const contentType = response.headers.get('content-type');
-
-                if (contentType && contentType.includes('application/json')) {
-                    const data = await response.json();
-                    return data;
+            if (response.ok && response.headers.get('content-type')?.includes('application/json')) {
+                try {
+                    return await response.json();
+                } catch {
+                    // JSON parsing failed - continue to next attempt
+                    continue;
                 }
             }
         } catch {
+            // Network error - continue to next attempt
             continue;
         }
     }
 
     return null;
 }
-
-// On page load, try to detect appConfig.json automatically
-window.addEventListener('load', async () => {
-    try {
-        foundConfig = await findAppConfigFile();
-        if (foundConfig) {
-            chrome.runtime.sendMessage({
-                action: 'configFound',
-                data: foundConfig,
-            }).catch(() => {
-                // Background script not ready yet
-            });
-        }
-    } catch {
-        // Error during auto-detection
-    }
-});
 
