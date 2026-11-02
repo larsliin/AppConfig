@@ -81,8 +81,9 @@
         error.value = '';
         appConfig.value = '';
         configData.value = null;
-        injectLocalhost.value = false;
-        injectLocalhostDisabled.value = false;
+        
+        // Store the current state of injectLocalhost to restore it after refresh
+        const wasInjectLocalhostEnabled = injectLocalhost.value;
 
         chrome.runtime.sendMessage(
             { action: 'getConfig' },
@@ -97,12 +98,28 @@
                         injectLocalhost.value = true;
                         injectLocalhostDisabled.value = true;
                     } else {
-                        injectLocalhost.value = false;
+                        // Restore the previous injectLocalhost state
+                        injectLocalhost.value = wasInjectLocalhostEnabled;
                         injectLocalhostDisabled.value = false;
+                        
+                        // If the toggle was enabled, refresh the localhost object from current tab URL
+                        if (wasInjectLocalhostEnabled) {
+                            chrome.tabs.query({ active: true, currentWindow: true }, (tabs: any) => {
+                                if (tabs.length > 0) {
+                                    const tabUrl = tabs[0].url;
+                                    if (tabUrl) {
+                                        LOCALHOST_OBJECT.value = buildLocalhostObject(tabUrl);
+                                        console.log('[Popup] Refreshed LOCALHOST_OBJECT from URL:', LOCALHOST_OBJECT.value);
+                                    }
+                                }
+                            });
+                        }
                     }
                 } else {
                     error.value = response?.error || 'Failed to load config';
                     appConfig.value = '';
+                    // Restore the previous injectLocalhost state even on error
+                    injectLocalhost.value = wasInjectLocalhostEnabled;
                 }
             },
         );
