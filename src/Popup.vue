@@ -1,5 +1,5 @@
 <script setup lang="ts">
-    import { ref, onMounted, computed } from 'vue';
+    import { ref, onMounted, computed, watch } from 'vue';
     import BaseCheckbox from './components/bascomponents/BaseCheckbox.vue';
     import BaseButton from './components/bascomponents/BaseButton.vue';
     import BaseFeedbackBadge from './components/bascomponents/BaseFeedbackBadge.vue';
@@ -51,7 +51,6 @@
                 loading.value = false;
                 if (response && response.success && response.data) {
                     configData.value = response.data;
-                    appConfig.value = JSON.stringify(response.data, null, 2);
 
                     if (configData.value.localhost) {
                         injectLocalhost.value = true;
@@ -71,6 +70,9 @@
                             });
                         }
                     }
+
+                    // Set appConfig after determining localhost injection state
+                    appConfig.value = displayedConfig.value;
                 } else {
                     error.value = response?.error || 'Failed to load config';
                     appConfig.value = '';
@@ -80,15 +82,9 @@
         );
     }
 
-    function handleTextareaInput(event: Event) {
-        if (event.target instanceof HTMLTextAreaElement) {
-            appConfig.value = event.target.value;
-        }
-    }
-
     async function handleCopyToClipboard() {
         try {
-            await navigator.clipboard.writeText(displayedConfig.value);
+            await navigator.clipboard.writeText(appConfig.value);
 
             // Clear any existing timeout
             if (feedbackTimeout) {
@@ -119,6 +115,13 @@
             }, 50);
         }
     }
+
+    // Watch for localhost injection toggle changes
+    watch(injectLocalhost, () => {
+        if (configData.value) {
+            appConfig.value = displayedConfig.value;
+        }
+    });
 
     // Initialize dark mode based on OS preference
     onMounted(() => {
@@ -161,9 +164,8 @@
             </div>
 
             <textarea
-                :value="displayedConfig"
+                v-model="appConfig"
                 class="config-textarea"
-                @input="handleTextareaInput"
                 :placeholder="loading ? 'Loading config...' : 'No config loaded'"
             ></textarea>
 
