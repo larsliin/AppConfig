@@ -7,6 +7,7 @@ export function useConfigManager() {
     const configData = ref<any>(null);
     const appConfig = ref('');
     const error = ref('');
+    const warningError = ref('');
     const loading = ref(false);
 
     const { injectLocalhost, injectLocalhostDisabled, LOCALHOST_OBJECT, isCheckboxDisabled, setLocalhostObject } =
@@ -42,6 +43,14 @@ export function useConfigManager() {
         error.value = '';
     }
 
+    function setWarningError(message: string) {
+        warningError.value = message;
+    }
+
+    function clearWarningError() {
+        warningError.value = '';
+    }
+
     function updateEditorContent(newContent: string) {
         appConfig.value = newContent;
     }
@@ -73,6 +82,7 @@ export function useConfigManager() {
     function handleRefresh() {
         loading.value = true;
         error.value = '';
+        warningError.value = '';
         appConfig.value = '';
         configData.value = null;
 
@@ -121,8 +131,12 @@ export function useConfigManager() {
                         queryAndValidateTabUrl((tabUrl) => {
                             if (!tabUrl) return;
                             const result = setLocalhostObject(tabUrl);
-                            if (!result.success) {
-                                console.warn('Localhost injection unavailable:', result.error);
+                            if (!result.success && result.isWarning && result.error) {
+                                // Unknown app - show as warning, don't disable UI
+                                setWarningError(result.error);
+                            } else if (!result.success && !result.isWarning && result.error) {
+                                // Critical error
+                                setError(result.error);
                             }
                         });
                     }
@@ -141,20 +155,25 @@ export function useConfigManager() {
         queryAndValidateTabUrl((tabUrl) => {
             if (!tabUrl) return;
             const result = setLocalhostObject(tabUrl);
-            if (!result.success) {
-                console.warn('Initial localhost setup failed:', result.error);
+            if (!result.success && result.isWarning && result.error) {
+                // Unknown app - show as warning on popup open
+                setWarningError(result.error);
+            } else if (!result.success && !result.isWarning && result.error) {
+                // Critical error - disable UI
+                setError(result.error);
             }
         });
     }
 
     function cleanupTimeouts() {
-        // No timeouts to clean up - errors persist until manually cleared
+        // No timeouts to clean up
     }
 
     return {
         configData,
         appConfig,
         error,
+        warningError,
         loading,
         injectLocalhost,
         injectLocalhostDisabled,
@@ -165,6 +184,8 @@ export function useConfigManager() {
         displayedConfig,
         setError,
         clearError,
+        setWarningError,
+        clearWarningError,
         handleRefresh,
         updateEditorContent,
         initializeLocalhost,

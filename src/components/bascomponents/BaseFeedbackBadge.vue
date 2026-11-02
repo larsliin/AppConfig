@@ -3,13 +3,18 @@
         variant?: 'success' | 'error'
         show: boolean
     }>();
+
+    defineEmits<{
+        finished: []
+    }>();
 </script>
 
 <template>
     <div
-        v-if="show || show === false"
+        v-if="show"
         class="feedback-badge"
-        :class="{ 'fade-out': !show, [variant || 'success']: true }"
+        :class="variant || 'success'"
+        @animationend="$emit('finished')"
     >
         <svg v-if="variant !== 'error'" width="90" height="90" fill="currentColor" viewBox="0 0 16 16">
             <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"/>
@@ -37,6 +42,7 @@
     z-index: 1000;
     opacity: 1;
     pointer-events: none;
+    animation: feedback-fade-out 1.5s ease-out forwards;
 }
 
 .feedback-badge.success {
@@ -49,8 +55,13 @@
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
 }
 
-.feedback-badge.fade-out {
-    opacity: 0;
-    transition: opacity 1.5s ease-out;
+@keyframes feedback-fade-out {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
 }
 </style>

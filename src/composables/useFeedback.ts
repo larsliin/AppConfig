@@ -3,13 +3,12 @@ import { ref } from 'vue';
 export function useFeedback() {
     const showCopyFeedback = ref(false);
     const showErrorFeedback = ref(false);
+    const feedbackKey = ref(0);
 
     function showFeedback(variant: 'success' | 'error') {
-        if (variant === 'success') {
-            showCopyFeedback.value = true;
-        } else {
-            showErrorFeedback.value = true;
-        }
+        feedbackKey.value += 1;
+        showCopyFeedback.value = variant === 'success';
+        showErrorFeedback.value = variant === 'error';
     }
 
     function clearFeedback() {
@@ -20,6 +19,7 @@ export function useFeedback() {
     return {
         showCopyFeedback,
         showErrorFeedback,
+        feedbackKey,
         showFeedback,
         clearFeedback,
     };

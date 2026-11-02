@@ -12,12 +12,13 @@
     const isDarkMode = ref(true);
     const editor = ref<InstanceType<typeof ConfigEditor>>();
 
-    const { showCopyFeedback, showErrorFeedback, showFeedback, clearFeedback } = useFeedback();
+    const { showCopyFeedback, showErrorFeedback, feedbackKey, showFeedback, clearFeedback } = useFeedback();
 
     const {
         configData,
         appConfig,
         error,
+        warningError,
         loading,
         injectLocalhost,
         isRefreshDisabled,
@@ -94,12 +95,23 @@
 <template>
     <div id="app">
         <div class="config-container">
-            <BaseFeedbackBadge variant="success" :show="showCopyFeedback" />
-            <BaseFeedbackBadge variant="error" :show="showErrorFeedback" />
+            <BaseFeedbackBadge
+                :key="`success-${feedbackKey}`"
+                variant="success"
+                :show="showCopyFeedback"
+                @finished="clearFeedback"
+            />
+            <BaseFeedbackBadge
+                :key="`error-${feedbackKey}`"
+                variant="error"
+                :show="showErrorFeedback"
+                @finished="clearFeedback"
+            />
 
             <PopupHeader :is-refresh-disabled="isRefreshDisabled" @refresh="handleRefresh" />
 
             <BaseAlert :show="!!error" :message="error" variant="error" />
+            <BaseAlert :show="!!warningError" :message="warningError" variant="warning" />
 
             <ConfigEditor
                 ref="editor"
