@@ -2,16 +2,30 @@
     import { ref, onMounted, computed } from 'vue';
     import BaseCheckbox from './components/bascomponents/BaseCheckbox.vue';
     import BaseButton from './components/bascomponents/BaseButton.vue';
+    import { useTheme } from './composables/useTheme';
 
     const appConfig = ref('');
     const configData = ref<any>(null);
     const injectLocalhost = ref(false);
     const injectLocalhostDisabled = ref(false);
     const showCopyFeedback = ref(false);
+    const showErrorFeedback = ref(false);
     const error = ref('');
     const loading = ref(false);
     const LOCALHOST_OBJECT = ref<any>(null);
     let feedbackTimeout: number | null = null;
+
+    // Compute whether the checkbox should be disabled
+    const isCheckboxDisabled = computed(() => {
+        return injectLocalhostDisabled.value || !!error.value;
+    });
+
+    // Compute whether the refresh button should be disabled
+    const isRefreshDisabled = computed(() => {
+        return loading.value || !!error.value;
+    });
+    
+    useTheme();
 
     /**
      * Extract domain from URL
@@ -149,18 +163,26 @@
             }, 50);
         } catch (err) {
             console.error('Failed to copy:', err);
-            error.value = 'Failed to copy to clipboard';
+            
+            // Clear any existing timeout
+            if (feedbackTimeout) {
+                clearTimeout(feedbackTimeout);
+            }
+            
+            showErrorFeedback.value = true;
+            
+            // Start fade-out immediately
+            feedbackTimeout = setTimeout(() => {
+                showErrorFeedback.value = false;
+                feedbackTimeout = null;
+            }, 50);
         }
     }
 
     // Initialize dark mode based on OS preference
     onMounted(() => {
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            document.documentElement.setAttribute('data-theme', 'dark');
-        } else {
-            document.documentElement.removeAttribute('data-theme');
-        }
-
+        // Theme is initialized by the useTheme composable
+        
         // Get current tab URL and build localhost object
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs: any) => {
             if (tabs.length > 0) {
@@ -185,6 +207,12 @@
                         <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"/>
                     </svg>
                 </div>
+                <div v-if="showErrorFeedback || showErrorFeedback === false" class="error-feedback-badge" :class="{ 'fade-out': !showErrorFeedback }">
+                    <svg width="90" height="90" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                        <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                    </svg>
+                </div>
             <div class="config-header">
                 <h1>AppConfig Copier</h1>
                 <BaseButton
@@ -192,7 +220,7 @@
                     @click="handleRefresh"
                     title="Refresh config"
                     aria-label="Refresh"
-                    :disabled="loading"
+                    :disabled="isRefreshDisabled"
                 >
                     <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
                         <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
@@ -217,9 +245,9 @@
                     <BaseCheckbox
                         id="inject-localhost-checkbox"
                         v-model="injectLocalhost"
-                        :disabled="injectLocalhostDisabled"
+                        :disabled="isCheckboxDisabled"
                     />
-                    <label for="inject-localhost-checkbox" :class="{ disabled: injectLocalhostDisabled }">Inject Localhost</label>
+                    <label for="inject-localhost-checkbox" :class="{ disabled: isCheckboxDisabled }">Inject Localhost</label>
                 </div>
 
                 <BaseButton
@@ -344,6 +372,30 @@
 }
 
 .copy-feedback-badge.fade-out {
+    opacity: 0;
+    transition: opacity 1.5s ease-out;
+}
+
+.error-feedback-badge {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: #ef4444;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+    z-index: 1000;
+    opacity: 1;
+    pointer-events: none;
+}
+
+.error-feedback-badge.fade-out {
     opacity: 0;
     transition: opacity 1.5s ease-out;
 }
