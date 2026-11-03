@@ -12,14 +12,17 @@ const sizes = [
     { name: 'icon-16.svg', size: 16 },
     { name: 'icon-48.svg', size: 48 },
     { name: 'icon-128.svg', size: 128 },
+    { name: 'icon-disabled.svg', size: 16, output: 'icon-disabled-16.png' },
+    { name: 'icon-disabled.svg', size: 48, output: 'icon-disabled-48.png' },
+    { name: 'icon-disabled.svg', size: 128, output: 'icon-disabled-128.png' },
 ];
 
 async function convertSvgToPng() {
     console.log('Converting SVG icons to PNG...');
 
-    for (const { name } of sizes) {
+    for (const { name, size, output } of sizes) {
         const svgPath = path.join(iconsDir, name);
-        const pngPath = path.join(iconsDir, name.replace('.svg', '.png'));
+        const pngPath = path.join(iconsDir, output || name.replace('.svg', '.png'));
 
         if (!fs.existsSync(svgPath)) {
             console.warn(`⚠ ${name} not found`);
@@ -28,6 +31,7 @@ async function convertSvgToPng() {
 
         try {
             await sharp(svgPath)
+                .resize(size, size)
                 .png()
                 .toFile(pngPath);
 

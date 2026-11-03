@@ -1,5 +1,36 @@
 // Background Service Worker for Config Copier Extension
 
+chrome.action.disable();
+
+chrome.runtime.onInstalled.addListener(async () => {
+    const imageData = Object.fromEntries(await Promise.all([16, 48, 128].map(async (size) => {
+        const response = await fetch(chrome.runtime.getURL(`icons/icon-${size}.png`));
+        const bitmap = await createImageBitmap(await response.blob());
+        const canvas = new OffscreenCanvas(size, size);
+        const context = canvas.getContext('2d');
+        context.drawImage(bitmap, 0, 0);
+        bitmap.close();
+        return [size, context.getImageData(0, 0, size, size)];
+    })));
+
+    chrome.declarativeContent.onPageChanged.removeRules(undefined, () => {
+        chrome.declarativeContent.onPageChanged.addRules([{
+            conditions: [
+                { hostContains: 'wppes-map-dev.com' },
+                { hostContains: 'wppes-map-stage.com' },
+                { hostContains: 'catalyst.online' },
+                { hostEquals: 'localhost' },
+            ].map((pageUrl) => new chrome.declarativeContent.PageStateMatcher({
+                pageUrl,
+            })),
+            actions: [
+                new chrome.declarativeContent.SetIcon({ imageData }),
+                new chrome.declarativeContent.ShowAction(),
+            ],
+        }]);
+    });
+});
+
 const USER_FRIENDLY_ERRORS = {
     'Could not establish connection. Receiving end does not exist.': 
         'Failed to read appConfig.json. Try reloading the page.',

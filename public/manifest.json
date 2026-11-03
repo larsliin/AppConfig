@@ -5,6 +5,7 @@
   "description": "Copy configuration from downloaded config files to clipboard",
   "permissions": [
     "activeTab",
+    "declarativeContent",
     "scripting",
     "storage",
     "clipboardWrite"
@@ -13,6 +14,11 @@
     "<all_urls>"
   ],
   "action": {
+    "default_icon": {
+      "16": "icons/icon-disabled-16.png",
+      "48": "icons/icon-disabled-48.png",
+      "128": "icons/icon-disabled-128.png"
+    },
     "default_popup": "popup.html",
     "default_title": "Catalyst appConfig copier"
   },
