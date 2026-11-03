@@ -5,12 +5,23 @@
     import { json } from '@codemirror/lang-json';
     import { lineNumbers } from '@codemirror/view';
     import { oneDark } from '@codemirror/theme-one-dark';
+    import { syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
 
     interface Props {
         content: string;
         isDarkMode: boolean;
         isDisabled: boolean;
     }
+
+    const lightTheme = {
+        '.cm-gutters': {
+            'background-color': 'var(--color-editor-bg)',
+            'border-right': '1px solid var(--color-border)',
+        },
+        '.cm-activeLineGutter': {
+            'background-color': 'rgba(0, 0, 0, 0.05)',
+        },
+    };
 
     const props = defineProps<Props>();
 
@@ -20,7 +31,9 @@
     const getEditorExtensions = () => [
         json(),
         lineNumbers(),
-        props.isDarkMode ? oneDark : [],
+        props.isDarkMode
+            ? oneDark
+            : [syntaxHighlighting(defaultHighlightStyle), EditorView.baseTheme(lightTheme)],
         EditorView.editable.of(!props.isDisabled),
     ];
 
@@ -76,7 +89,7 @@
         flex: 1;
         border: 1px solid var(--color-border);
         border-radius: var(--radius-button);
-        background: var(--color-panel);
+        background: var(--color-editor-bg);
         overflow: hidden;
     }
 
@@ -85,6 +98,7 @@
         font-size: 12px;
         line-height: 1.4;
         height: 100%;
+        background-color: var(--color-editor-bg);
     }
 
     .code-editor-container :deep(.cm-content) {
@@ -101,7 +115,7 @@
     }
 
     .code-editor-container :deep(.cm-gutters) {
-        background-color: var(--color-panel);
+        background-color: var(--color-editor-bg);
         border-right: 1px solid var(--color-border);
         padding-right: 4px;
     }

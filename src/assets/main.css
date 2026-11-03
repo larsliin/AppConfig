@@ -1,7 +1,8 @@
 :root {
     color-scheme: dark;
-    --color-bg: #1e1e1e;
-    --color-panel: #2b2b2b;
+    --color-bg: #1C2918;
+    --color-panel: #1C2918;
+    --color-editor-bg: #172213;
     --color-panel-raised: #333333;
     --color-border: #3c3c3c;
     --color-text: #e0e0e0;
@@ -27,8 +28,9 @@
 
 :root[data-theme='light'] {
     color-scheme: light;
-    --color-bg: #f3f4f6;
-    --color-panel: #ffffff;
+    --color-bg: #E4ECDC;
+    --color-panel: #E4ECDC;
+    --color-editor-bg: #EDF3E9;
     --color-panel-raised: #f8fafc;
     --color-border: #d1d5db;
     --color-text: #1f2937;
