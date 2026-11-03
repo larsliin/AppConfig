@@ -32,7 +32,7 @@ chrome.runtime.onInstalled.addListener(async () => {
 });
 
 const USER_FRIENDLY_ERRORS = {
-    'Could not establish connection. Receiving end does not exist.': 
+    'Could not establish connection. Receiving end does not exist.':
         'Failed to read appConfig.json. Try reloading the page.',
     'The tab was closed.':
         'The page was closed. Please try again.',
