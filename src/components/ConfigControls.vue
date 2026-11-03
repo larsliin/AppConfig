@@ -24,7 +24,7 @@
                 :disabled="isCheckboxDisabled"
             />
             <label for="inject-localhost-checkbox" :class="{ disabled: isCheckboxDisabled }">
-                Inject Localhost
+                Include Localhost config (tenantHost, applicationHost)
             </label>
         </div>
 
