@@ -96,7 +96,7 @@ async function handleGetConfig(sendResponse) {
                 error: friendlyError,
             });
         }
-    } catch (error) {
+    } catch {
         sendResponse({
             success: false,
             error: 'Could not access the page. Try reloading the page.',
