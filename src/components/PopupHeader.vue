@@ -38,8 +38,10 @@
 
     .config-header h1 {
         margin: 0;
-        font-size: 16px;
-        font-weight: 600;
-        color: var(--color-text);
+        color: #e0e0e0;
+        letter-spacing: -.02em;
+        font-size: 18px;
+        font-weight: 650;
+        line-height: 1.25;
     }
 </style>
