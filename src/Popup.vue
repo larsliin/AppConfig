@@ -118,6 +118,7 @@
                 :content="appConfig"
                 :is-dark-mode="isDarkMode"
                 :is-disabled="isEditorDisabled"
+                :is-loading="loading"
             />
 
             <ConfigControls

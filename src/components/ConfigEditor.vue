@@ -11,6 +11,7 @@
         content: string;
         isDarkMode: boolean;
         isDisabled: boolean;
+        isLoading?: boolean;
     }
 
     const lightTheme = {
@@ -81,16 +82,60 @@
 </script>
 
 <template>
-    <div ref="editorContainer" class="code-editor-container"></div>
+    <div class="code-editor-container" :aria-busy="isLoading">
+        <div ref="editorContainer" class="code-editor"></div>
+        <div v-if="isLoading" class="loading-bar" role="progressbar" aria-label="Loading appConfig"></div>
+    </div>
 </template>
 
 <style scoped>
     .code-editor-container {
         flex: 1;
+        position: relative;
         border: 1px solid var(--color-border);
         border-radius: var(--radius-button);
         background: var(--color-editor-bg);
         overflow: hidden;
+    }
+
+    .code-editor {
+        height: 100%;
+    }
+
+    .loading-bar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        overflow: hidden;
+        background: var(--color-border);
+        z-index: 1;
+    }
+
+    .loading-bar::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 40%;
+        background: var(--color-accent);
+        animation: slide 1.1s ease-in-out infinite;
+    }
+
+    @keyframes slide {
+        from {
+            left: -40%;
+        }
+        to {
+            left: 100%;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .loading-bar::before {
+            animation-duration: 3s;
+        }
     }
 
     .code-editor-container :deep(.cm-editor) {
