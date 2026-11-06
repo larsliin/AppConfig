@@ -118,28 +118,23 @@
         position: absolute;
         top: 0;
         bottom: 0;
+        width: 40%;
         background: var(--color-accent);
-        animation: fill-and-drain 1.2s ease-in-out infinite;
+        animation: slide 1.1s ease-in-out infinite;
     }
 
-    @keyframes fill-and-drain {
-        0% {
-            left: 0;
-            right: 100%;
+    @keyframes slide {
+        from {
+            left: -40%;
         }
-        50% {
-            left: 0;
-            right: 0;
-        }
-        100% {
+        to {
             left: 100%;
-            right: 0;
         }
     }
 
     @media (prefers-reduced-motion: reduce) {
         .loading-bar::before {
-            animation-duration: 4s;
+            animation-duration: 3s;
         }
     }
 
