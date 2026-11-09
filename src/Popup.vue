@@ -1,5 +1,5 @@
 <script setup lang="ts">
-    import { ref, onMounted, watch } from 'vue';
+    import { ref, onMounted, onUnmounted, watch } from 'vue';
     import BaseFeedbackBadge from './components/bascomponents/BaseFeedbackBadge.vue';
     import BaseAlert from './components/bascomponents/BaseAlert.vue';
     import PopupHeader from './components/PopupHeader.vue';
@@ -11,6 +11,7 @@
 
     const isDarkMode = ref(true);
     const editor = ref<InstanceType<typeof ConfigEditor>>();
+    let themeObserver: MutationObserver | null = null;
 
     const { showCopyFeedback, showErrorFeedback, feedbackKey, showFeedback, clearFeedback } = useFeedback();
 
@@ -69,26 +70,26 @@
         try {
             updateThemeDetection();
 
-            const observer = new MutationObserver(() => {
+            themeObserver = new MutationObserver(() => {
                 updateThemeDetection();
             });
 
-            observer.observe(document.documentElement, {
+            themeObserver.observe(document.documentElement, {
                 attributes: true,
                 attributeFilter: ['data-theme'],
             });
 
             initializeLocalhost();
             handleRefresh();
-
-            return () => {
-                observer.disconnect();
-                clearFeedback();
-                cleanupTimeouts();
-            };
         } catch (err) {
             console.error('Error during component mount:', err);
         }
+    });
+
+    onUnmounted(() => {
+        themeObserver?.disconnect();
+        clearFeedback();
+        cleanupTimeouts();
     });
 </script>
 

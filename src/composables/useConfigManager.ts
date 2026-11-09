@@ -2,6 +2,8 @@ import { ref, computed } from 'vue';
 import { useLocalhostInjection } from './useLocalhostInjection';
 
 const CONFIG_NOT_FOUND_ERROR = 'Failed to read appConfig.json. Try reloading the page.';
+const CONFIG_LOAD_TIMEOUT_MS = 10000;
+const CONFIG_LOAD_TIMEOUT_ERROR = 'Loading appConfig.json timed out after 10 seconds. Please reload the page and try again.';
 
 export function useConfigManager() {
     const configData = ref<any>(null);
@@ -9,6 +11,8 @@ export function useConfigManager() {
     const error = ref('');
     const warningError = ref('');
     const loading = ref(false);
+    let configLoadTimeout: ReturnType<typeof setTimeout> | null = null;
+    let configRequestId = 0;
 
     const { injectLocalhost, injectLocalhostDisabled, LOCALHOST_OBJECT, isCheckboxDisabled, setLocalhostObject } =
         useLocalhostInjection();
@@ -51,6 +55,13 @@ export function useConfigManager() {
         warningError.value = '';
     }
 
+    function clearConfigLoadTimeout() {
+        if (configLoadTimeout !== null) {
+            clearTimeout(configLoadTimeout);
+            configLoadTimeout = null;
+        }
+    }
+
     function updateEditorContent(newContent: string) {
         appConfig.value = newContent;
     }
@@ -80,15 +91,30 @@ export function useConfigManager() {
     }
 
     function handleRefresh() {
+        clearConfigLoadTimeout();
+        const requestId = ++configRequestId;
         loading.value = true;
         error.value = '';
         warningError.value = '';
         appConfig.value = '';
         configData.value = null;
 
+        configLoadTimeout = setTimeout(() => {
+            if (requestId !== configRequestId) return;
+
+            configLoadTimeout = null;
+            configRequestId++;
+            loading.value = false;
+            setError(CONFIG_LOAD_TIMEOUT_ERROR);
+            updateEditorContent('');
+        }, CONFIG_LOAD_TIMEOUT_MS);
+
         const wasInjectLocalhostEnabled = injectLocalhost.value;
 
         chrome.runtime.sendMessage({ action: 'getConfig' }, (response: any) => {
+            if (requestId !== configRequestId) return;
+
+            clearConfigLoadTimeout();
             loading.value = false;
 
             if (checkChromeError('Communication error')) {
@@ -166,7 +192,8 @@ export function useConfigManager() {
     }
 
     function cleanupTimeouts() {
-        // No timeouts to clean up
+        clearConfigLoadTimeout();
+        configRequestId++;
     }
 
     return {
