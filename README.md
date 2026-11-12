@@ -125,6 +125,10 @@ AppConfig/
 - **Vue TSC** - TypeScript type checking for Vue components
 - **Sharp** - Image processing for icon and favicon generation
 
+## Shared components
+
+This app uses shared UI components from the [Chrome Extension Component Library](https://github.com/larsliin/ChromeExtensionComponentLibrary/blob/main/docs/components/index.md).
+
 ### Extension APIs
 - **Manifest v3** - Latest Chrome extension platform
 - **Chrome Storage API** - Local persistence

@@ -1,9 +1,9 @@
 <script setup lang="ts">
     import { ref, onMounted, onUnmounted, watch } from 'vue';
     import { json } from '@codemirror/lang-json';
+    import { BaseAlert } from 'chrome-extension-component-library';
     import { BaseCodeEditor } from 'chrome-extension-component-library/code-editor';
     import BaseFeedbackBadge from './components/bascomponents/BaseFeedbackBadge.vue';
-    import BaseAlert from './components/bascomponents/BaseAlert.vue';
     import PopupHeader from './components/PopupHeader.vue';
     import ConfigControls from './components/ConfigControls.vue';
     import { useTheme } from './composables/useTheme';
@@ -107,8 +107,8 @@
 
             <PopupHeader :is-refresh-disabled="isRefreshDisabled" @refresh="handleRefresh" />
 
-            <BaseAlert :show="!!error" :message="error" variant="error" />
-            <BaseAlert :show="!!warningError" :message="warningError" variant="warning" />
+            <BaseAlert v-if="error" :message="error" variant="error" />
+            <BaseAlert v-if="warningError" :message="warningError" variant="warning" />
 
             <BaseCodeEditor
                 :model-value="appConfig"
