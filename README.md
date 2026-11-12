@@ -48,9 +48,8 @@ AppConfig/
 ├── src/
 │   ├── Popup.vue                    # Main Vue popup component
 │   ├── components/
-│   │   ├── ConfigEditor.vue         # JSON editor with CodeMirror
-│   │   ├── ConfigControls.vue       # Load/save/copy controls
-│   │   ├── PopupHeader.vue          # Header with theme toggle
+│   │   ├── ConfigControls.vue       # Localhost and copy controls
+│   │   ├── PopupHeader.vue          # Header with refresh control
 │   │   └── bascomponents/           # Reusable base components
 │   ├── composables/
 │   │   ├── useConfigManager.ts      # Config state management

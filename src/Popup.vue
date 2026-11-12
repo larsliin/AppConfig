@@ -1,16 +1,17 @@
 <script setup lang="ts">
     import { ref, onMounted, onUnmounted, watch } from 'vue';
+    import { json } from '@codemirror/lang-json';
+    import { BaseCodeEditor } from 'chrome-extension-component-library/code-editor';
     import BaseFeedbackBadge from './components/bascomponents/BaseFeedbackBadge.vue';
     import BaseAlert from './components/bascomponents/BaseAlert.vue';
     import PopupHeader from './components/PopupHeader.vue';
-    import ConfigEditor from './components/ConfigEditor.vue';
     import ConfigControls from './components/ConfigControls.vue';
     import { useTheme } from './composables/useTheme';
     import { useConfigManager } from './composables/useConfigManager';
     import { useFeedback } from './composables/useFeedback';
 
     const isDarkMode = ref(true);
-    const editor = ref<InstanceType<typeof ConfigEditor>>();
+    const jsonLanguage = json();
     let themeObserver: MutationObserver | null = null;
 
     const { showCopyFeedback, showErrorFeedback, feedbackKey, showFeedback, clearFeedback } = useFeedback();
@@ -46,18 +47,13 @@
         }
     });
 
-    async function handleCopyToClipboard() {
-        try {
-            const textToCopy = editor.value?.getEditorContent() || appConfig.value;
-            if (!textToCopy) {
-                return;
-            }
-            await navigator.clipboard.writeText(textToCopy);
-            showFeedback('success');
-        } catch (err) {
-            console.error('Failed to copy:', err);
-            showFeedback('error');
-        }
+    function handleCopyError(message: string) {
+        console.error('Failed to copy:', message);
+        showFeedback('error');
+    }
+
+    function handleCopySuccess() {
+        showFeedback('success');
     }
 
     function updateThemeDetection() {
@@ -114,20 +110,25 @@
             <BaseAlert :show="!!error" :message="error" variant="error" />
             <BaseAlert :show="!!warningError" :message="warningError" variant="warning" />
 
-            <ConfigEditor
-                ref="editor"
-                :content="appConfig"
-                :is-dark-mode="isDarkMode"
-                :is-disabled="isEditorDisabled"
-                :is-loading="loading"
+            <BaseCodeEditor
+                :model-value="appConfig"
+                :language="jsonLanguage"
+                :theme="isDarkMode ? 'dark' : 'light'"
+                :readonly="isEditorDisabled"
+                :loading="loading"
+                label="AppConfig JSON editor"
+                class="config-editor"
+                @update:model-value="updateEditorContent"
             />
 
             <ConfigControls
                 :inject-localhost="injectLocalhost"
                 :is-checkbox-disabled="isCheckboxLocalhostDisabled"
-                :is-copy-disabled="!displayedConfig"
+                :is-copy-disabled="!appConfig"
+                :copy-value="appConfig"
                 @update:inject-localhost="(val) => (injectLocalhost = val)"
-                @copy="handleCopyToClipboard"
+                @copied="handleCopySuccess"
+                @copy-error="handleCopyError"
             />
         </div>
     </div>
@@ -148,5 +149,14 @@
         padding: 12px;
         gap: 12px;
         overflow: hidden;
+    }
+
+    .config-editor {
+        flex: 1;
+        min-height: 0;
+    }
+
+    .config-editor :deep(.cm-line) {
+        white-space: pre !important;
     }
 </style>

@@ -1,22 +1,23 @@
 <script setup lang="ts">
-    import BaseCheckbox from './bascomponents/BaseCheckbox.vue';
-    import BaseButton from './bascomponents/BaseButton.vue';
+    import { BaseCheckbox, BaseCopyButton } from 'chrome-extension-component-library';
 
     defineProps<{
         injectLocalhost: boolean;
         isCheckboxDisabled: boolean;
         isCopyDisabled: boolean;
+        copyValue: string;
     }>();
 
     defineEmits<{
         'update:injectLocalhost': [value: boolean];
-        copy: [];
+        copied: [value: string];
+        copyError: [message: string];
     }>();
 </script>
 
 <template>
     <div class="config-controls">
-        <div class="checkbox-row">
+        <div class="config-checkbox-row">
             <BaseCheckbox
                 id="inject-localhost-checkbox"
                 :model-value="injectLocalhost"
@@ -28,14 +29,16 @@
             </label>
         </div>
 
-        <BaseButton
+        <BaseCopyButton
+            :value="copyValue"
             variant="primary"
+            label="Copy to Clipboard"
+            copied-label="Copied!"
             class="copy-button"
-            @click="$emit('copy')"
             :disabled="isCopyDisabled"
-        >
-            Copy to Clipboard
-        </BaseButton>
+            @copied="$emit('copied', $event)"
+            @error="$emit('copyError', $event)"
+        />
     </div>
 </template>
 
@@ -46,21 +49,21 @@
         gap: 8px;
     }
 
-    .checkbox-row {
+    .config-checkbox-row {
         display: flex;
         align-items: center;
         gap: 8px;
         width: 100%;
     }
 
-    .checkbox-row label {
+    .config-checkbox-row label {
         font-size: 13px;
         color: var(--color-text);
         font-weight: 500;
         white-space: nowrap;
     }
 
-    .checkbox-row label.disabled {
+    .config-checkbox-row label.disabled {
         opacity: 0.6;
         cursor: not-allowed;
     }
