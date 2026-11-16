@@ -19,7 +19,7 @@ A lightweight Chrome extension that copies configuration data from downloaded co
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js (v18+)
+- Node.js 24 LTS (recommended)
 - Chrome browser
 - npm
 
@@ -32,6 +32,11 @@ npm install
 # Build the extension
 npm run build:extension
 ```
+
+The shared component library is downloaded automatically from the pinned
+`v0.1.0` GitHub Release. No library checkout, sibling `packages/` directory, or
+GitHub login is needed. Commit `package.json` and `package-lock.json` together
+when updating its release URL. Use `npm ci` for an exact lockfile install.
 
 ### Loading in Chrome
 
